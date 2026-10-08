@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="정호진 포트폴리오: 설비 연계 백엔드 아키텍처 설계와 구축">
+<title>정호진 포트폴리오</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<style>
+  /* Layout: sticky index rail on the left, one reading column on the right (stacks on phones).
+     The write path diagram is the centerpiece; everything else supports it.
+     Plan: cool lavender-grey ground, indigo accent used for the data path, mono for tech labels. */
+  :root {
+    --bg: #f3f2ec; --surface: #fffefa; --surface-2: #e9ede6; --ink: #14211d; --mute: #55645e;
+    --line: #d8ddd3; --accent: #0b6b5e; --accent-soft: #dcebe5; --ph: #fff0b3; --ph-ink: #5a4500;
+    --hero-bg: #0f3a33; --hero-ink: #f4f7f3; --hero-mute: #a9c4bb; --hero-em: #8fe3c9; --hero-line: rgba(255,255,255,.18);
+    --sans: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c1411; --surface: #131e1a; --surface-2: #1a2823; --ink: #e6efea; --mute: #96aaa2;
+      --line: #263630; --accent: #5fd1b4; --accent-soft: #17332c; --ph: #3b3310; --ph-ink: #f0db8a;
+      --hero-bg: #14352e; --hero-ink: #f1f7f4; --hero-mute: #9fbdb3; --hero-em: #8fe3c9; --hero-line: rgba(255,255,255,.14); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c1411; --surface: #131e1a; --surface-2: #1a2823; --ink: #e6efea; --mute: #96aaa2;
+    --line: #263630; --accent: #5fd1b4; --accent-soft: #17332c; --ph: #3b3310; --ph-ink: #f0db8a;
+    --hero-bg: #14352e; --hero-ink: #f1f7f4; --hero-mute: #9fbdb3; --hero-em: #8fe3c9; --hero-line: rgba(255,255,255,.14); color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.75; padding-inline: 20px; padding-block: 0 64px; word-break: keep-all; overflow-wrap: break-word; }
+  .shell { max-width: 1120px; margin-inline: auto; display: grid; grid-template-columns: 1fr; gap: 0; }
+  @media (min-width: 900px) { .shell { grid-template-columns: 190px minmax(0, 1fr); gap: 56px; } }
+  nav.rail { padding-block: 28px 0; }
+  @media (min-width: 900px) { nav.rail { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; padding-block: 56px 0; } }
+  .who { font-weight: 900; font-size: 20px; letter-spacing: -.01em; }
+  .role { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--mute); margin-top: 2px; text-transform: uppercase; }
+  nav.rail ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 16px; padding: 0; }
+  @media (min-width: 900px) { nav.rail ul { flex-direction: column; gap: 2px; margin-top: 28px; border-left: 1px solid var(--line); } }
+  nav.rail a { display: block; color: var(--mute); text-decoration: none; font-size: 14px; padding: 4px 0; }
+  @media (min-width: 900px) { nav.rail a { padding: 5px 0 5px 14px; margin-left: -1px; border-left: 2px solid transparent; } nav.rail a:hover { color: var(--accent); border-left-color: var(--accent); } }
+  nav.rail a:hover { color: var(--accent); }
+  nav.rail a:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  main { min-width: 0; }
+  .intro { padding-block: 40px 8px; }
+  @media (min-width: 900px) { .intro { padding-block: 56px 8px; } }
+  h1 { font-size: clamp(28px, 5.6vw, 46px); line-height: 1.28; font-weight: 900; letter-spacing: -.02em; text-wrap: balance; max-width: 18em; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { color: var(--mute); max-width: 40em; margin-top: 18px; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 28px; }
+  .fact { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; min-width: 0; }
+  .fact b { display: block; font-size: 14.5px; }
+  .fact span { color: var(--mute); font-size: 13px; line-height: 1.6; display: block; margin-top: 2px; }
+  section { padding-block: 56px 0; scroll-margin-top: 16px; }
+  .label { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  h2 { font-size: 26px; line-height: 1.35; font-weight: 900; letter-spacing: -.015em; text-wrap: balance; }
+  h3 { font-size: 15px; font-weight: 700; margin-block: 28px 8px; }
+  .lead { color: var(--mute); max-width: 42em; margin-top: 8px; }
+  .diagram { margin-top: 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); padding: 16px 12px 8px; }
+  .diagram svg { display: block; min-width: 700px; width: 100%; height: auto; }
+  .lane { fill: var(--surface-2); stroke: var(--line); }
+  .node { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+  .node-key { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+  .lane-t { fill: var(--mute); font-family: var(--sans); font-size: 14px; font-weight: 500; }
+  .node-t { fill: var(--ink); font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .node-s { fill: var(--mute); font-family: var(--sans); font-size: 14px; }
+  .node-k { fill: var(--mute); font-family: var(--mono); font-size: 11px; }
+  .flow { stroke: var(--mute); stroke-width: 1.5; fill: none; }
+  .flow-soft { stroke: var(--mute); stroke-width: 1.5; fill: none; }
+  .dots { fill: var(--mute); font-family: var(--mono); font-size: 24px; }
+  .head { fill: var(--mute); }
+  .points { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 14px; }
+  .point { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; min-width: 0; }
+  .point b { display: block; font-size: 14.5px; margin-bottom: 4px; }
+  .point p { color: var(--mute); font-size: 13.5px; line-height: 1.65; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); margin-top: 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 15px; }
+  th, td { padding: 11px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  th { background: var(--surface-2); font-weight: 700; font-size: 13px; }
+  td:first-child { font-weight: 700; white-space: nowrap; width: 1%; }
+  code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-radius: 3px; }
+  .ph { background: var(--ph); color: var(--ph-ink); padding: 0 4px; border-radius: 3px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 13px; color: var(--mute); margin-top: 8px; }
+  .meta b { color: var(--ink); font-weight: 700; margin-right: 6px; }
+  .proj { margin-top: 24px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); padding: 22px 22px 24px; min-width: 0; }
+  .proj h3 { margin-top: 0; font-size: 18px; font-weight: 900; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .two > div { min-width: 0; }
+  ul.plain { padding-left: 1.2em; } ul.plain li { margin-block: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { font-family: var(--mono); font-size: 12.5px; background: var(--accent-soft); color: var(--accent); border-radius: 3px; padding: 3px 9px; }
+  .note { margin-top: 12px; font-size: 13px; color: var(--mute); }
+  footer { margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--mute); font-size: 13px; }
+  a { color: var(--accent); }
+  @media (max-width: 520px) { td:first-child { white-space: normal; } .proj { padding: 18px 16px 20px; } }
+
+  /* v6 overrides: dark hero with key numbers, numbered sections, calmer neutral chips, two-column project cards */
+  .hero { background: var(--hero-bg); color: var(--hero-ink); border-radius: 10px; padding: 40px 36px 30px; margin-top: 32px; }
+  @media (min-width: 900px) { .hero { margin-top: 56px; } }
+  @media (max-width: 520px) { .hero { padding: 28px 20px 24px; } }
+  .hero h1 { max-width: 16em; }
+  .hero h1 em { color: var(--hero-em); }
+  .hero .sub { color: var(--hero-mute); margin-top: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 20px 28px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hero-line); }
+  .stat b { display: block; font-size: 32px; line-height: 1.15; font-weight: 900; letter-spacing: -.02em; }
+  .stat span { display: block; margin-top: 4px; font-size: 13.5px; color: var(--hero-mute); line-height: 1.5; }
+  h2 .no { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--accent); margin-right: 10px; letter-spacing: .04em; vertical-align: .12em; }
+  .chip { background: var(--surface); color: var(--ink); border: 1px solid var(--line); font-family: var(--sans); font-size: 13.5px; padding: 3px 11px; border-radius: 99px; }
+  .projs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 20px; }
+  .projs .proj { margin-top: 0; }
+  .duty { font-size: 13px; font-weight: 700; color: var(--mute); margin-top: 16px; }
+  .period { font-family: var(--mono); font-size: 12.5px; color: var(--accent); margin-bottom: 6px; }
+  .proj .meta { margin-top: 6px; }
+  .lane { rx: 8px; }
+  .node { rx: 6px; }
+  .flow { stroke-width: 1.8; }
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+<nav class="rail" aria-label="목차">
+  <div class="who">정호진</div>
+  <div class="role">Backend Engineer</div>
+  <ul>
+    <li><a href="#architecture">백엔드 아키텍처</a></li>
+    <li><a href="#equipment">설비 연계</a></li>
+    <li><a href="#projects">프로젝트</a></li>
+    <li><a href="#stack">기술 스택</a></li>
+    <li><a href="#certs">자격증</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<div class="hero">
+  <h1>설비 연계 <em>백엔드 아키텍처</em>를 설계하고 구축했습니다</h1>
+  <p class="sub">설비와 연계되는 MES 백엔드를 설계하는 일부터 현장 구축까지 맡아왔습니다.</p>
+  <div class="stats">
+    <div class="stat"><b>4년 9개월</b><span>IT 개발팀 근무 (2022.01 ~ 현재)</span></div>
+    <div class="stat"><b>2회</b><span>해외 시스템 구축 프로젝트</span></div>
+    <div class="stat"><b>3개 법인</b><span>국내외 구축에 표준 백엔드로 적용</span></div>
+    <div class="stat"><b>약 60만 건</b><span>하루 최소 수집 건수 (설비 27대 공장)</span></div>
+    
+  </div>
+</div>
+
+<section id="architecture">
+  <h2><span class="no">01</span>백엔드 아키텍처</h2>
+  <p class="lead">프로그램이 늘어도 DB 접속 지점은 HAProxy 하나입니다. PgBouncer를 컨테이너로 늘려 실시간 대용량 데이터를 분산 처리합니다.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1000 300" role="img" aria-label="MES 프로그램에서 HAProxy, n개의 PgBouncer를 거쳐 TimescaleDB로 이어지는 구조도">
+      <rect class="node" x="30" y="106" width="190" height="56"/>
+      <rect class="node" x="22" y="114" width="190" height="56"/>
+      <rect class="node" x="14" y="122" width="190" height="56"/><text class="node-t" x="109" y="156" text-anchor="middle">MES 프로그램</text>
+
+      <rect class="node" x="296" y="122" width="124" height="56"/><text class="node-t" x="358" y="156" text-anchor="middle">HAProxy</text>
+
+      <rect class="lane" x="494" y="14" width="196" height="272"/>
+      <rect class="node" x="510" y="34" width="164" height="48"/><text class="node-t" x="592" y="65" text-anchor="middle">PgBouncer 1</text>
+      <rect class="node" x="510" y="94" width="164" height="48"/><text class="node-t" x="592" y="125" text-anchor="middle">PgBouncer 2</text>
+      <text class="dots" x="592" y="190" text-anchor="middle">⋮</text>
+      <rect class="node" x="510" y="222" width="164" height="48"/><text class="node-t" x="592" y="253" text-anchor="middle">PgBouncer n</text>
+
+      <rect class="node" x="776" y="116" width="214" height="68"/><text class="node-t" x="883" y="157" text-anchor="middle">TimescaleDB</text>
+
+      <path class="flow" d="M220,150 L292,150"/>
+      <path class="head" d="M290,144 L290,156 L300,150 z"/>
+      <path class="flow" d="M420,150 C455,150 460,58 506,58"/>
+      <path class="flow" d="M420,150 C455,150 460,118 506,118"/>
+      <path class="flow" d="M420,150 C455,150 460,246 506,246"/>
+      <path class="head" d="M504,52 L504,64 L514,58 z"/><path class="head" d="M504,112 L504,124 L514,118 z"/><path class="head" d="M504,240 L504,252 L514,246 z"/>
+      <path class="flow" d="M674,58 C725,58 725,140 772,140"/>
+      <path class="flow" d="M674,118 C725,118 725,150 772,150"/>
+      <path class="flow" d="M674,246 C725,246 725,160 772,160"/>
+      <path class="head" d="M770,134 L770,146 L780,140 z"/><path class="head" d="M770,144 L770,156 L780,150 z"/><path class="head" d="M770,154 L770,166 L780,160 z"/>
+    </svg>
+  </div>
+
+  <div class="scroll"><table>
+    <tr><th>구성</th><th>역할</th></tr>
+    <tr><td>MES 프로그램</td><td>설비 데이터 수집과 실적 처리, 외부 시스템(SAP, 현대제철 EDI) 송수신</td></tr>
+    <tr><td>RabbitMQ</td><td>프로그램 간 메시지 전송</td></tr>
+    <tr><td>Redis</td><td>설비별 실시간 현재 상태</td></tr>
+    <tr><td>HAProxy</td><td>모든 프로그램의 DB 접속 지점, 부하 분산</td></tr>
+    <tr><td>PgBouncer</td><td>서버 사양에 맞춰 개수를 정하고, Docker 컨테이너로 늘려 Scale Out</td></tr>
+    <tr><td>TimescaleDB</td><td>모든 이력(신호, 처리 동작 기록). 압축과 삭제 정책으로 대용량 관리, 10만 건 조회 1~2초</td></tr>
+  </table></div>
+</section>
+
+<section id="equipment">
+  <h2><span class="no">02</span>설비 연계</h2>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1000 220" role="img" aria-label="PLC에서 KEPServerEX, 통신 프로그램을 거쳐 MES DB와 TimescaleDB에 저장되는 흐름">
+      <rect class="node" x="8" y="26" width="200" height="62"/><text class="node-t" x="108" y="53" text-anchor="middle">LS산전 PLC</text><text class="node-s" x="108" y="76" text-anchor="middle">Modbus</text>
+      <rect class="node" x="8" y="132" width="200" height="62"/><text class="node-t" x="108" y="159" text-anchor="middle">미쓰비시 PLC</text><text class="node-s" x="108" y="182" text-anchor="middle">Melsec Q Ethernet</text>
+      <rect class="node" x="288" y="74" width="190" height="62"/><text class="node-t" x="383" y="101" text-anchor="middle">KEPServerEX</text><text class="node-s" x="383" y="124" text-anchor="middle">OPC UA 서버</text>
+      <rect class="node" x="558" y="74" width="190" height="62"/><text class="node-t" x="653" y="101" text-anchor="middle">통신 프로그램</text><text class="node-s" x="653" y="124" text-anchor="middle">OPC UA 클라이언트</text>
+      <rect class="node" x="826" y="20" width="168" height="62"/><text class="node-t" x="910" y="47" text-anchor="middle">MES DB</text><text class="node-s" x="910" y="70" text-anchor="middle">실적</text>
+      <rect class="node" x="826" y="128" width="168" height="62"/><text class="node-t" x="910" y="155" text-anchor="middle">TimescaleDB</text><text class="node-s" x="910" y="178" text-anchor="middle">이력</text>
+
+      <path class="flow" d="M208,57 C248,57 248,105 284,105"/><path class="flow" d="M208,163 C248,163 248,105 284,105"/>
+      <path class="head" d="M282,99 L282,111 L292,105 z"/>
+      <path class="flow" d="M478,105 L554,105"/><path class="head" d="M552,99 L552,111 L562,105 z"/>
+      <path class="flow" d="M748,105 C788,105 788,51 822,51"/><path class="head" d="M820,45 L820,57 L830,51 z"/>
+      <path class="flow" d="M748,105 C788,105 788,159 822,159"/><path class="head" d="M820,153 L820,165 L830,159 z"/>
+    </svg>
+  </div>
+</section>
+
+<section id="projects">
+  <h2><span class="no">03</span>프로젝트</h2>
+
+  <div class="projs">
+    <div class="proj">
+      <div class="period">2025.07 ~ 2025.09 (3개월)</div>
+      <h3>인도 푸네 차체 생산 공장 구축</h3>
+      <div class="meta"><span><b>인원</b>3명 (본인 포함)</span><span><b>규모</b>설비 27대</span></div>
+      <div class="duty">담당 업무</div>
+      <ul class="plain" style="margin-top:6px;">
+        <li>백엔드 아키텍처 설계와 구축 (Docker 기반)</li>
+        <li>PLC 데이터 수집: Modbus, Melsec Q Ethernet, Kepware, C# OPC UA 클라이언트</li>
+        <li>현대제철 EDI 인터페이스 프로그램 개발</li>
+        <li>통합 PC 관리 프로그램 개발</li>
+      </ul>
+    </div>
+
+    <div class="proj">
+      <div class="period">2024.07 ~ 2024.10 (4개월)</div>
+      <h3>인도 첸나이 BPC 공장 구축</h3>
+      <div class="duty">담당 업무</div>
+      <ul class="plain" style="margin-top:6px;">
+        <li>백엔드 구축: Docker 기반 Redis, MongoDB(Linux), RabbitMQ(Windows)</li>
+        <li>PDA 앱 개발: Xamarin, MVVM 패턴, 자재관리와 출하관리와 재고실사</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="stack">
+  <h2><span class="no">04</span>기술 스택</h2>
+  <div class="chips">
+    <span class="chip">C#</span><span class="chip">Docker</span><span class="chip">Linux</span><span class="chip">RabbitMQ</span><span class="chip">Redis</span><span class="chip">MSSQL</span><span class="chip">MongoDB</span><span class="chip">TimescaleDB</span><span class="chip">HAProxy</span><span class="chip">PgBouncer</span><span class="chip">OPC UA</span><span class="chip">Modbus</span><span class="chip">Kepware</span><span class="chip">SAP 연동</span><span class="chip">EDI</span><span class="chip">Xamarin</span>
+  </div>
+</section>
+
+<section id="certs">
+  <h2><span class="no">05</span>자격증</h2>
+  <div class="chips"><span class="chip">정보처리기사</span><span class="chip">SQLD</span><span class="chip">ADsP</span><span class="chip">AICE Associate</span></div>
+</section>
+
+<footer>
+  <b>연락처</b> zghwls@naver.com
+</footer>
+
+</main>
+</div>
+</body>
+</html>
